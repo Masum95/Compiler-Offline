@@ -60,6 +60,20 @@ public:
         return val%bucketSize;
     }
 
+    int hashing(SymbolInfo *sym)
+    {
+      string str = sym->getName();
+        int prm = 11, i = 0;
+        long long int val = 0;
+        while(i<str.length())
+        {
+            val+= prm* str[i];
+            prm*=i;
+      val%=bucketSize;
+            i++;
+        }
+        return val%bucketSize;
+    }
 
     bool insert(SymbolInfo *nd)
     {
@@ -74,24 +88,20 @@ public:
         while(tmp->ptr!=NULL)
         {
             tmp = tmp->ptr;
-            if(tmp->getName()==nd->getName())
-            {
-                printf("<%s,%s> already exists in current ScopeTable\n",nd->getName().c_str(),nd->getType().c_str());
-                return false;
-            }
+
             i++;
         }
 
         tmp->ptr = nd;
 
-        printf("Inserted in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
+        //printf("Inserted in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
         return true;
     }
 
-    SymbolInfo* lookup(string str)
+    SymbolInfo* lookupWithIDType(SymbolInfo *sym)
     {
         int i = 0;
-        int indx = hashing(str);
+        int indx = hashing(sym->getName());
         if(buckets[indx] == NULL)
         {
             return NULL;
@@ -99,9 +109,9 @@ public:
         SymbolInfo *tr = buckets[indx]->ptr;
         while(tr!=NULL)
         {
-            if(tr->getName()==str)
+            if(tr->getName()==sym->getName() && tr->getIDType() == sym->getIDType())
             {
-                printf("Found in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
+                //printf("Found in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
                 return tr;
             }
             tr = tr->ptr;
@@ -111,12 +121,13 @@ public:
         return NULL;
     }
 
+
     void print()
     {
         printf(" ScopeTable # %d\n",tableId);
         for(int i=0; i<bucketSize; i++)
         {
-            
+
             if(buckets[i]==NULL)
             {
                 continue;
@@ -131,13 +142,14 @@ public:
             nl;
         }
     }
-    bool Delete(string str)
+    bool Delete(SymbolInfo *sym)
     {
+        string str = sym->getName();
         int i = 0;
         int indx = hashing(str);
         if(buckets[indx] == NULL)
         {
-            printf("Not found\n");
+            //printf("Not found\n");
             return false;
         }
         SymbolInfo *tr = buckets[indx]->ptr,*pr = buckets[indx];
@@ -145,8 +157,8 @@ public:
         {
             if(tr->getName()==str)
             {
-                printf("Found in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
-                printf("Deleted entry at %d, %d from current ScopeTable\n",indx,i);
+              //  printf("Found in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
+              //  printf("Deleted entry at %d, %d from current ScopeTable\n",indx,i);
                 pr->ptr = tr->ptr;
                 delete tr;
                 return true;
@@ -156,15 +168,11 @@ public:
             i++;
         }
 
-        printf("Not found");
-        nl;
+      //  printf("Not found");
+      //  nl;
         return false;
 
 
     }
 
 };
-
-
-
-

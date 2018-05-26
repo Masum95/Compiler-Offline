@@ -75,7 +75,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 {WHITESPACE} {}
 
 "if"	{
-			retur IF;
+			return IF;
 		}
 "for"	{
 			return FOR;
@@ -84,8 +84,6 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 "do"	{
 			return DO;
 		}
-
-
 
 "int"	{
 			return INT;
@@ -96,7 +94,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 		}
 
 "void"	{
-			retur VOID;
+			return VOID;
 		}
 "switch"	{
 			return SWITCH;
@@ -121,7 +119,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
     	 return DOUBLE;
 		}
 "return"  {
-			return RETRUN;
+			return RETURN;
 		}
 "case"	{
 		return CASE;
@@ -142,7 +140,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 		}
 "{" 	{
       return LCURL;
-
+    }
 
 "}" 	{
       return RCURL;
@@ -217,11 +215,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 {DIGIT}+ 	{
 
-				strcpy(ch,"I ");
-				strcat(ch,yytext);
-				strcat(ch," CONST_INT");
 
-				s.executeCommand(ch);
         SymbolInfo* s =new  SymbolInfo(yytext, "CONST_INT");
 			  yylval.symVal= s;
 			  return CONST_INT;
@@ -229,11 +223,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 {DIGIT}*(\.{DIGIT}+)(E[+-]?{DIGIT}+)?	{
 
-				strcpy(ch,"I ");
-				strcat(ch,yytext);
-				strcat(ch," CONST_FLOAT");
 
-				s.executeCommand(ch);
         SymbolInfo* s =new  SymbolInfo(yytext, "CONST_FLOAT");
 			  yylval.symVal= s;
 			  return CONST_FLOAT;
@@ -247,11 +237,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 			string str(yytext+1);
 			str = str.substr(0,str.size()-1);
 
-			strcpy(ch,"I ");
-			strcat(ch,yytext);
-			strcat(ch," CONST_CHAR");
 
-			s.executeCommand(ch);
 
       SymbolInfo* s =new  SymbolInfo(formatString(str).c_str(), "CONST_CHAR");
 			yylval.symVal= s;
@@ -273,7 +259,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 			{
 				if(*ci=='\n') line_count++;
 			}
-      SymbolInfo* s =new  SymbolInfo(formatString(str).c_str(), "STRING");
+      SymbolInfo* s =new  SymbolInfo(formatString(strn).c_str(), "STRING");
 			yylval.symVal= s;
 			return STRING;
 
@@ -310,11 +296,6 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 [a-zA-Z_][a-zA-Z0-9_]{0,31} {
 
-			strcpy(ch,"I ");
-			strcat(ch,yytext);
-			strcat(ch," ID");
-
-			s.executeCommand(ch);
 
       SymbolInfo* s =new  SymbolInfo(yytext, "ID");
 			yylval.symVal= s;
