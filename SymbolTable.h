@@ -67,18 +67,18 @@ public:
   {
     cur->Delete(sym);
   }
-  void printAll()
+  void printAll(ofstream &logFile)
   {
 
     for(int i=st.size()-1; i>=0; i--)
     {
 
-      st[i]->print();
+      st[i]->print(logFile);
     }
   }
-  void printCurScope()
+  void printCurScope(ofstream &logFile)
   {
-    cur->print();
+    cur->print(logFile);
   }
   void enterScope()
   {

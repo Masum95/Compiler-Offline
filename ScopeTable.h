@@ -122,9 +122,10 @@ public:
     }
 
 
-    void print()
+    void print(ofstream &logFile)
     {
-        printf(" ScopeTable # %d\n",tableId);
+        logFile<<" ScopeTable # "<<tableId<<endl;
+        //printf(" ScopeTable # %d\n",tableId);
         for(int i=0; i<bucketSize; i++)
         {
 
@@ -132,14 +133,15 @@ public:
             {
                 continue;
             }
-			printf("%d -->",i);
+            logFile<<i<<" -->";
+			        // printf("%d -->",i);
             SymbolInfo *tr = buckets[i]->ptr;
             while(tr!=NULL)
             {
-                tr->print();
+                tr->print(logFile);
                 tr = tr->ptr;
             }
-            nl;
+            logFile<<endl;
         }
     }
     bool Delete(SymbolInfo *sym)
