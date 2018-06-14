@@ -1,0 +1,7 @@
+*.gch
+*.out
+*.o
+*.txt
+*.output
+*.tab.*
+*.yy.c

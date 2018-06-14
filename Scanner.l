@@ -62,7 +62,7 @@ WHITESPACE [ \t\f\r\v]+
 LETTER [a-zA-Z]
 DIGIT [0-9]
 NEWLINE \n
-ALPAHNUM [a-zA-z0-9]
+ALPAHNUM [a-zA-Z0-9]
 UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 %x STRING
@@ -151,10 +151,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 		}
 
-"]" 	{
-      return RTHIRD;
 
-		}
 
 "\+"	|
 "-" {
@@ -215,12 +212,15 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 {DIGIT}+ 	{
 
-
         SymbolInfo* s =new  SymbolInfo(yytext, "CONST_INT");
 			  yylval.symVal= s;
 			  return CONST_INT;
 			}
 
+"]" 	{
+            return RTHIRD;
+
+      }
 {DIGIT}*(\.{DIGIT}+)(E[+-]?{DIGIT}+)?	{
 
 
@@ -295,9 +295,8 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 	/*VARIABLE*/
 
 [a-zA-Z_][a-zA-Z0-9_]{0,31} {
-
-
-      SymbolInfo* s =new  SymbolInfo(yytext, "ID");
+      string str(yytext);
+      SymbolInfo* s =new  SymbolInfo(str, "ID");
 			yylval.symVal= s;
 			return ID;
 		}
@@ -305,27 +304,25 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 {DIGIT}*(\.{DIGIT}*\..*)	{
 
-				error_count++;
-			}
+    				error_count++;
+    			}
 
 ([0-9]*\.?[0-9]*E[+-]?[0-9]*\.+[0-9])*	{
 
-				error_count++;
-			}
+    				error_count++;
+    			}
 
 {DIGIT}+{ALPAHNUM}+	{
-				error_count++;
-			}
+              				error_count++;
+              			}
 
 
 '.{2,}'	{
 				error_count++;
-
 		}
 
 ''	{
 				error_count++;
-
 		}
 
 '([^'\\]|\\['\"\\ntafrbv]|\\[0-7]{1,3}|\\[Xx][0-9a-fA-F]+|{UCN})	{
@@ -335,6 +332,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 <COMMENT><<EOF>> {
 				error_count++;
+        return 0;
 		}
 
 

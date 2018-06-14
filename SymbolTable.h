@@ -14,6 +14,7 @@
 #define bug   cout<<"bug"<<endl;
 
 using namespace std;
+
 /*
 bool equalIgnoreCase(string str1,string str2)
 {
@@ -28,34 +29,44 @@ i++;
 return true;
 }
 */
+
 class SymbolTable
 {
+  ofstream LogFile;
 public:
-  int buckSize, scopeNum;
+  int buckSize, scopeNum , scopeNumShow;
   vector<ScopeTable*> st;
   ScopeTable *cur;
   SymbolTable(int sz)
   {
     buckSize = sz;
-    scopeNum = 1;
-    cur = new ScopeTable(sz,1,NULL);
+    scopeNum = 0 , scopeNumShow = 1;
+    cur = new ScopeTable(sz,scopeNum+1,NULL);
     st.push_back(cur);
   }
+
+  void setStream(ofstream &logFile)
+  {
+    LogFile.copyfmt(logFile);                                  //1
+    LogFile.clear(logFile.rdstate());
+    LogFile.basic_ios<char>::rdbuf(logFile.rdbuf());
+  }
+
   bool insert(SymbolInfo *sym)
   {
     cur->insert(sym);
+
   }
 
   SymbolInfo* lookUpInScopes(SymbolInfo *sym)
   {
     SymbolInfo *tmp = NULL;
-    int indx = st.size()-1;
-
-    if(tmp==NULL && indx>=0)
+    for(int i=st.size()-1; i>=0; i--)
     {
-      tmp = st[indx]->lookupWithIDType(sym);
-      indx--;
+      tmp = st[i]->lookupWithIDType(sym);
+      if(tmp!=NULL) return tmp;
     }
+
     return tmp;
   }
 
@@ -73,16 +84,18 @@ public:
     for(int i=st.size()-1; i>=0; i--)
     {
 
-      st[i]->print(logFile);
+      st[i]->print(LogFile);
     }
   }
   void printCurScope(ofstream &logFile)
   {
-    cur->print(logFile);
+    cur->print(LogFile);
   }
   void enterScope()
   {
-    cur = new ScopeTable(buckSize,++scopeNum,st[scopeNum-1]);
+    scopeNum++; scopeNumShow++;
+    cur = new ScopeTable(buckSize,scopeNumShow,st[scopeNum-1]);
+    LogFile<<" New ScopeTable with id "<<scopeNumShow<<" created"<<endl;
     st.push_back(cur);
   }
 
@@ -94,8 +107,10 @@ public:
       st.pop_back();
 
       cur = st.back();
-      //printf("ScopeTable with id %d removed\n",scopeNum);
+
+      LogFile<<" ScopeTable with id "<<scopeNumShow<<" removed "<<endl;
       scopeNum--;
+      //printf("ScopeTable with id %d removed\n",scopeNum);
     }
   }
 

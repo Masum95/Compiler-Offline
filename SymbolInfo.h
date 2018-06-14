@@ -22,6 +22,7 @@ public:
   float floatVal;
   char chVal;
   int indx;
+  string stmt;
 
   SymbolInfo *ptr;
   vector<string> ParamList;	//INT, FLOAT, STRING, CHAR
@@ -29,17 +30,19 @@ public:
   vector<float> floats;
   vector<char> chars;
   bool funcDefined;
+  bool errorFound;
   SymbolInfo()
   {
     name = "", type = "" ;
-    funcDefined = false;
+    funcDefined = false , errorFound = false;
     ptr = NULL;
   }
 
   SymbolInfo(string name,string type)
   {
 
-    this-> name = name, this->type = type;
+    this-> name = name;
+    this->type = type;
     ptr = NULL;
   }
   SymbolInfo* setName(string name)
@@ -150,6 +153,6 @@ public:
 
   void print(ofstream &logFile)
   {
-    logFile<<"< "<<type<<" : "<<name<<" > ";
+    logFile<<"< "<<name<<" : "<<type<<" > ";
   }
 };
