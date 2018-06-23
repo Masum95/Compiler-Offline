@@ -29,7 +29,7 @@ public:
   vector<int> ints;
   vector<float> floats;
   vector<char> chars;
-  bool funcDefined;
+  bool funcDefined,funcDeclared;
   bool errorFound;
   SymbolInfo()
   {
@@ -154,5 +154,6 @@ public:
   void print(ofstream &logFile)
   {
     logFile<<"< "<<name<<" : "<<type<<" > ";
+    //logFile<<"< "<<name<<" : "<<type<<" : "<<idType<<" > ";
   }
 };

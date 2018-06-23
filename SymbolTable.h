@@ -72,7 +72,9 @@ public:
 
   SymbolInfo* lookUpInCurScope(SymbolInfo *sym)
   {
+    //  printCurScope(cout);
     return cur->lookupWithIDType(sym);
+
   }
   bool deleteElement(SymbolInfo *sym)
   {

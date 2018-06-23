@@ -111,9 +111,9 @@ public:
     SymbolInfo *tr = buckets[indx]->ptr;
     while(tr!=NULL)
     {
-      if(tr->getName()==sym->getName() )
+      if(tr->getName()==sym->getName() && tr->getIDType()==sym->getIDType() )
       {
-        //printf("Found in ScopeTable# %d at position %d, %d\n",tableId,indx,i);
+        //if(sym->getName()=="a") printf("Found in ScopeTable# %d at position %d, %d\n%s ",tableId,indx,i,sym->getIDType().c_str());
         return tr;
       }
       tr = tr->ptr;

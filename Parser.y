@@ -26,7 +26,7 @@
 
 	void yyerror(const char *s)
 	{
-		//write your code
+		printf("%s\n",s);
 	}
 
 
@@ -109,11 +109,12 @@
 		logFile << "At line no: "<< line_count << " : func_declaration : 	type_specifier ID LPAREN parameter_list RPAREN SEMICOLON\n"<<endl;
 		logFile << $$->stmt << endl << endl;
 		SymbolInfo* isDeclared = table.lookUpInScopes((new SymbolInfo())->setName($2->getName())->setIDType( "FUNC") );
-		if(isDeclared!=NULL)
+		if(isDeclared!=NULL && isDeclared->funcDeclared==true)
 		{
-			errorFile << "Error at line " << line_count << " Function "<< $2 <<" already declared" << endl << endl;
+			errorFile << "Error at line " << line_count << " Function "<< $2->getName() <<" already declared" << endl << endl;
 			semError++;
 		}
+
 		else{
 			SymbolInfo *tmp = new SymbolInfo();
 			tmp->setName($2->getName())->setType("ID")->setIDType("FUNC")->setFuncRetType($1->getVarType());
@@ -122,8 +123,10 @@
 			{
 				tmp->ParamList.push_back(args[i]);
 			}
-			table.insert(tmp);
-			args.clear();
+			tmp->funcDeclared = true;
+			if(isDeclared==NULL) table.insert(tmp);
+			argsWithId = 0;
+			args.clear();params.clear();
 		}
 
 	}
@@ -136,9 +139,7 @@
 
 	func_definition : type_specifier ID LPAREN parameter_list RPAREN
 	{
-
 		SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($2->getName())->setIDType("FUNC"));
-
 
 
 		if(argsWithId!=args.size())
@@ -158,16 +159,17 @@
 					tmp2->ParamList.push_back(args[i]);
 				}
 				table.insert(tmp2);
-				//cout<<"----args sizein function : "<<tmp2->getName()<<" "<<tmp2->ParamList.size()<<endl;
 			}
 			else{
+
 				if(tmp->isFuncDefined()){
 					errorFile << "Error at line " << line_count << "Function "<< $2->getName() <<" already defined" << endl << endl;
 					semError++;
 
 				}
+
 				else if(tmp->getFuncRetType() != $1->getVarType()){
-					errorFile << "Error at line " << line_count << "Function "<< $2->getName() <<" :return type doesn't match declaration" << endl << endl;
+					errorFile << "Error at line " << line_count << ": Function "<< $2->getName() <<" :return type doesn't match declaration" << endl << endl;
 					semError++;
 
 				}
@@ -259,7 +261,6 @@
 		{
 			SymbolInfo *asgn = new SymbolInfo();
 			asgn->stmt = "";
-
 			$$ = asgn;
 		}
 		;
@@ -267,13 +268,13 @@
 
 		compound_statement : LCURL {
 			table.enterScope();
+
 			for(int i=0;i<params.size();i++)
 			{
 				table.insert(params[i]);
 			}
 			params.clear();
 			} statements {
-
 				} RCURL {
 					logFile << "At line no: "<< line_count << " : compound_statement : LCURL statements RCURL\n"<< endl;
 
@@ -299,7 +300,7 @@
 				}
 				|type_specifier declaration_list error
 				{
-					errorFile << "Error at line " << line_count << "; missing" << endl << endl;
+					errorFile << "Error at line " << line_count << "Inappropriate declaration" << endl << endl;
 					semError++;
 				}
 				;
@@ -310,7 +311,7 @@
 					logFile<<"int"<<endl<<endl;
 
 					SymbolInfo* tmp= new SymbolInfo();
-					tmp->setIDType("INT");
+					tmp->setVarType("INT");
 					tmp->stmt = "int";
 					variable_type = "INT";
 					$$ = tmp;
@@ -321,7 +322,7 @@
 					logFile<<"float"<<endl<<endl;
 
 					SymbolInfo* tmp= new SymbolInfo();
-					tmp->setIDType("INT");
+					tmp->setVarType("FLOAT");
 					tmp->stmt = "float";
 					variable_type = "FLOAT";
 					$$ = tmp;
@@ -331,7 +332,7 @@
 					logFile << "At line no: "<< line_count << " : type_specifier	: VOID\n"<< endl;
 					logFile<<"void"<<endl<<endl;
 					SymbolInfo* tmp= new SymbolInfo();
-					tmp->setIDType("INT");
+					tmp->setVarType("VOID");
 					tmp->stmt = "void";
 					variable_type = "VOID";
 					$$ = tmp;
@@ -340,6 +341,7 @@
 
 				declaration_list : declaration_list COMMA ID
 				{
+
 					string exp = $1->stmt +  ","+ $3->getName();
 					logFile << "At line no: "<< line_count << " : declaration_list : 	declaration_list COMMA ID\n"<<endl;
 					$1->stmt = exp;
@@ -350,9 +352,10 @@
 						semError++;
 					}
 					else{
-						SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($3->getName())->setIDType("VAR"));
+						SymbolInfo *tmp = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("VAR"));
+						SymbolInfo *tmp3 = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("ARA"));
 						//Is it declared earlier as different or same idType ?
-						if(tmp==NULL)
+						if(tmp==NULL && tmp3==NULL)
 						{
 							SymbolInfo* tmp2 = new SymbolInfo();
 							tmp2->setName($3->getName())->setIDType("VAR")->setVarType(variable_type)->setType("ID");
@@ -376,15 +379,17 @@
 						semError++;
 					}
 					else{
-						SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($3->getName())->setIDType("ARA"))->setType("ID");
-						if(tmp!=NULL)
+						SymbolInfo *tmp = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("ARA"))->setType("ID");
+						SymbolInfo *tmp3 = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("VAR"));
+						if(tmp!=NULL || tmp3!=NULL)
 						{
 							errorFile << "Error at line " << line_count << ": Variable "<< $3->getName() <<" already declared" << endl << endl;
 							semError++;
 						}
 						else{
+
 							SymbolInfo *tmp2 = new SymbolInfo();
-							tmp2->setName($3->getName())->setIDType("ARA");
+							tmp2->setName($3->getName())->setIDType("ARA")->setVarType(variable_type);
 							int sz = atoi($5->getName().c_str());
 							tmp2->setAraSize(sz);
 							if(variable_type=="INT")
@@ -430,10 +435,11 @@
 						semError++;
 					}
 					else{
-						SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+						SymbolInfo *tmp = table.lookUpInCurScope((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+						SymbolInfo *tmp3 = table.lookUpInCurScope((new SymbolInfo())->setName($1->getName())->setIDType("ARA"));
 						//Is it declared earlier as different or same idType ?
 
-						if(tmp==NULL)
+						if(tmp==NULL && tmp3==NULL)
 						{
 							SymbolInfo* tmp2 = new SymbolInfo();
 							tmp2->setName($1->getName())->setIDType("VAR")->setVarType(variable_type)->setType("ID");
@@ -449,7 +455,6 @@
 				}
 				| ID LTHIRD CONST_INT RTHIRD
 				{
-
 					logFile << "At line no: "<< line_count << " : declaration_list :	ID LTHIRD CONST_INT RTHIRD\n"<<endl;
 
 					SymbolInfo *asgn = new SymbolInfo();
@@ -462,15 +467,16 @@
 						semError++;
 					}
 					else{
-						SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($3->getName())->setIDType("ARA"));
-						if(tmp!=NULL)
+						SymbolInfo *tmp = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("ARA"));
+						SymbolInfo *tmp3 = table.lookUpInCurScope((new SymbolInfo())->setName($3->getName())->setIDType("VAR"));
+						if(tmp!=NULL || tmp3!=NULL)
 						{
 							errorFile << "Error at line " << line_count << ": Multiple Declaration of "<<$1->getName() << endl << endl;
 							semError++;
 						}
 						else{
 							SymbolInfo *tmp2 = new SymbolInfo();
-							tmp2->setName($1->getName())->setIDType("ARA")->setType("");
+							tmp2->setName($1->getName())->setIDType("ARA")->setVarType(variable_type)->setType("ID");
 							int sz = atoi($3->getName().c_str());
 							tmp2->setAraSize(sz);
 							if(variable_type=="INT")
@@ -524,7 +530,7 @@
 				$$ = asgn;
 				logFile << $$->stmt << endl << endl;
 			}
-			| IF LPAREN expression RPAREN statement /* %prec second_precedence ............ to be added later */
+			| IF LPAREN expression RPAREN statement  %prec second_precedence
 			{
 				logFile << "At line no: "<< line_count << " : statement : IF LPAREN expression RPAREN statement\n"<< endl;
 
@@ -612,20 +618,19 @@
 			{
 				logFile << "At line no: "<< line_count << " : expression : variable ASSIGNOP logic_expression\n"<< endl;
 				string vType = $1->getVarType();
-
-				SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+				SymbolInfo *tmp;
+				if($1->getIDType()=="VAR") tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+				else if($1->getIDType()=="ARA") tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("ARA"));
 				if(tmp==NULL)
 				{
-					errorFile << "Error at line " << line_count << " :  Undeclared Variable: "  << $1->getName()  <<  endl << endl;
-					semError++;
+
 				}
 				else if($1->errorFound || $3->errorFound);
-				else if($1->getVarType()!=$3->getVarType())
-				{
-					errorFile << "Error at line " << line_count << ": Type Mismatch" << endl << endl;
-					semError++;
-				}
 				else{
+					if(tmp->getVarType()!=$3->getVarType())
+					{
+						errorFile << "Warning at line " << line_count << ": Type Mismatch" << endl << endl;
+					}
 					if($1->getIDType()=="VAR")
 					{
 						if($3->getIDType()=="VAR") $1->setValue($3->getValue());
@@ -704,6 +709,7 @@
 				if(relop=="<") ans = ( val1 < val2 )? 1 : 0 ;
 
 				temp->intVal = ans;
+				temp->setVarType("INT");
 				$$ = temp;
 
 				$$->stmt = $1->stmt + " " + $2->getName() + " " + $3->stmt;
@@ -853,42 +859,40 @@
 				temp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType( "FUNC") );
 				if(temp == NULL){
 					errorFile << "Error at line " << line_count <<" : Function " <<$1->getName() <<" doesn't exist"<<endl << endl;
+					$$ = new SymbolInfo(); $$->errorFound = true;
 				}
 				else{
 					int sz = temp->ParamList.size();
-					//cout<<"function"<<$1->getName()<<"  can take "<<sz<<"parameters"<<endl;
-					//cout<<"threr are " <<$3->ParamList.size()<<endl;
 					if(sz > $3->ParamList.size())
 					{
 						errorFile << "Error at line " << line_count <<"  : Function " <<$1->getName() <<" too few arguments"<<endl << endl;
-						semError++;
+						semError++; $$ = new SymbolInfo(); $$->errorFound = true;
 					}
 					else if(sz < $3->ParamList.size())
 					{
 						errorFile << "Error at line " << line_count <<"  : Function " <<$1->getName() <<" too many arguments"<<endl << endl;
-						semError++;
+						semError++; $$ = new SymbolInfo(); $$->errorFound = true;
 					}
 					else {
-							bool er = false;
-							for(int i=0;i<sz;i++)
+						bool er = false;
+						for(int i=0;i<sz;i++)
+						{
+							if($3->ParamList[i]!=temp->ParamList[i])
 							{
-								if($3->ParamList[i]!=temp->ParamList[i])
-								{
-									errorFile << "Error at line " << line_count <<"  : Type Mismatch"<<endl << endl;
-									semError++; er = true; break;
-								}
+								errorFile << "Error at line " << line_count <<"  : Type Mismatch"<<endl << endl;
+								semError++; er = true; break;
 							}
-							if(!er) {
-								SymbolInfo *tmp2 = (new SymbolInfo())->setVarType($1->getFuncRetType());
-								$$ = tmp2;
+						}
+						SymbolInfo *tmp2 = (new SymbolInfo())->setIDType("FUNC")->setName($1->getName())->setVarType(temp->getFuncRetType())->setFuncRetType(temp->getFuncRetType());
+						$$ = tmp2;
+						$$->errorFound = er;
 
-							}
 
 					}
 
-					$$->stmt = $1->getName() + "(" + $3->stmt +")";
-					logFile << $$->stmt << endl << endl;
 				}
+				$$->stmt = $1->getName() + "(" + $3->stmt +")";
+				logFile << $$->stmt << endl << endl;
 			}
 			| LPAREN expression RPAREN
 			{
@@ -949,9 +953,22 @@
 
 			variable : ID
 			{
-				//cout<<$$->getName()<<"------"<<endl;
 				logFile << "At line no: "<< line_count << " : variable : ID\n"<<endl;
 				logFile << $1->getName() << endl << endl;
+				SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+				SymbolInfo *cur = table.lookUpInCurScope((new SymbolInfo())->setName($1->getName())->setIDType("ARA"));
+				$$ = new SymbolInfo();
+				if(cur!=NULL)
+				{
+					errorFile << "Error at line " << line_count << " : Trying to access array like normal variable! "   <<  endl << endl;
+					semError++;
+				}
+				else if(tmp==NULL)
+				{
+					errorFile << "Error at line " << line_count << " :  Undeclared Variable: "  << $1->getName()  <<  endl << endl;
+					semError++;
+				}
+				else $$ = tmp;
 
 				$$->stmt =  $1->getName();
 
@@ -961,12 +978,19 @@
 			{
 				bool prblm = false;
 				logFile << "At line no: "<< line_count << " : variable : ID LTHIRD expression RTHIRD\n"<<endl;
-
+				$$ = new SymbolInfo();
 				SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("ARA"));
-				if(tmp==NULL)
+				SymbolInfo *cur = table.lookUpInCurScope((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+
+				if(cur!=NULL)
+				{
+					errorFile << "Error at line " << line_count << " : "<<$1->getName()<<" not an Array "   <<  endl << endl;
+					semError++; prblm = true;
+				}
+				else if(tmp==NULL)
 				{
 					errorFile << "Error at line " << line_count << " :  Undeclared Variable: "  << $1->getName()  <<  endl << endl;
-					semError++;
+					semError++; prblm = true;
 				}
 				else{
 					if($3->getVarType()=="FLOAT")
@@ -975,21 +999,22 @@
 						semError++;
 						prblm = true;
 					}
-					if($3->intVal >= tmp->getAraSize())
+
+					if($3->getIDType()=="FUNC" && $3->getFuncRetType()!="INT")
 					{
-						errorFile << "Error at line " << line_count << " : " <<$1->getName() << " array index out of bounds" <<  endl << endl;
+						errorFile << "Error at line " << line_count << " : " <<$1->getName() << " Non-integer Array Index" <<  endl << endl;
 						semError++;
 						prblm = true;
 					}
 					//TBMF
-					SymbolInfo *tmp2 = (new SymbolInfo())->setName($1->getName())->setIDType("ARA")->setIndex($3->intVal);
+					SymbolInfo *tmp2 = (new SymbolInfo())->setName($1->getName())->setIDType("ARA")->setIndex($3->intVal)->setVarType($1->getVarType());
 
 					$$ = tmp2;
-					$$->stmt = $1->getName() + "["+$3->getName() + "]";
-					$$->errorFound = prblm;
-					logFile << $$->stmt << endl << endl;
-				}
 
+				}
+				$$->stmt = $1->getName() + "["+$3->stmt + "]";
+				$$->errorFound = prblm;
+				logFile << $$->stmt << endl << endl;
 			}
 			;
 
@@ -999,6 +1024,10 @@
 				logFile << $$->stmt << endl << endl;
 			}
 			|
+			{
+				$$ = new SymbolInfo();
+				$$->stmt = "";
+			}
 			;
 
 			arguments	:arguments COMMA logic_expression {
