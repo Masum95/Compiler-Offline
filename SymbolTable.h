@@ -66,7 +66,6 @@ public:
       tmp = st[i]->lookupWithIDType(sym);
       if(tmp!=NULL) return tmp;
     }
-
     return tmp;
   }
 

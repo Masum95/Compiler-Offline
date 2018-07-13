@@ -127,7 +127,9 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 "continue" {
 			return CONTINUE;
 			}
-
+"println" {
+  return PRINTLN;
+   }
 
 "(" 	{
       return LPAREN;
@@ -285,7 +287,7 @@ UCN (\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8})
 
 
 \/\/([^\\\n]|\\(.|\r?\n))*	{
-      
+
 		}
 
 

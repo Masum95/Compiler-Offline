@@ -21,11 +21,12 @@ public:
   int intVal;
   float floatVal;
   char chVal;
-  int indx;
-  string stmt;
+  string indx;
+  string stmt,code,icgName,writeData,postCode;
 
   SymbolInfo *ptr;
   vector<string> ParamList;	//INT, FLOAT, STRING, CHAR
+  vector<string> ParamVal;
   vector<int> ints;
   vector<float> floats;
   vector<char> chars;
@@ -38,16 +39,17 @@ public:
     ptr = NULL;
   }
 
+
   SymbolInfo(string name,string type)
   {
-
+    this->icgName = name;
     this-> name = name;
     this->type = type;
     ptr = NULL;
   }
   SymbolInfo* setName(string name)
   {
-    this->name = name;
+    this->name = this->icgName =  name;
     return this;
   }
   SymbolInfo* setType(string type)
@@ -69,12 +71,41 @@ public:
   SymbolInfo* setAraSize(int num)
   {
     this->araSize = num;
+    if(varType=="INT")
+    {
+      for(int i=0;i<num;i++)
+      {
+        ints.push_back(0);
+      }
+
+    }
+    if(varType=="FLOAT")
+    {
+      for(int i=0;i<num;i++)
+      {
+        floats.push_back(0);
+      }
+    }
+    if(varType=="CHAR")
+    {
+      for(int i=0;i<num;i++)
+      {
+        chars.push_back('\0');
+      }
+    }
     return this;
   }
 
-  SymbolInfo* setIndex(int num)
+  SymbolInfo* setIndex(string num)
   {
     this->indx= num;
+    return this;
+  }
+
+  SymbolInfo* copyObject(SymbolInfo *tmp)
+  {
+    varType = tmp->varType , idType = tmp->idType , name = tmp->name , icgName = tmp->icgName;
+    ParamList = tmp->ParamList , ParamVal = tmp->ParamVal , postCode = tmp->postCode , funcRetType = tmp->funcRetType;
     return this;
   }
 
@@ -96,11 +127,7 @@ public:
 
   }
 
-  void setAraElementValue(int indx,double a){
-    if(varType=="INT") ints[indx] = a;
-    if(varType=="FLOAT") floats[indx] = a;
-    if(varType=="CHAR") chars[indx] = a;
-  }
+
 
   double getValue(){
     if(varType=="INT") return intVal;
@@ -108,11 +135,7 @@ public:
     if(varType=="CHAR") return chVal;
   }
 
-  double getAraElementValue(int indx){
-    if(varType=="INT") return ints[indx];
-    if(varType=="FLOAT") return floats[indx];
-    if(varType=="CHAR") return chars[indx];
-  }
+
 
   string getName()
   {
@@ -132,9 +155,9 @@ public:
     return araSize;
   }
 
-  int getIndex()
+  string getIndex()
   {
-    return araSize;
+    return indx;
   }
   string getVarType()
   {
@@ -153,7 +176,7 @@ public:
 
   void print(ofstream &logFile)
   {
-    logFile<<"< "<<name<<" : "<<type<<" > ";
+    logFile<<"< "<<name<<" : "<<idType<<" > ";
     //logFile<<"< "<<name<<" : "<<type<<" : "<<idType<<" > ";
   }
 };
