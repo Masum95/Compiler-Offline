@@ -18,7 +18,7 @@ class SymbolInfo
   string funcRetType;
   int araSize;
 public:
-  int intVal;
+  int intVal,scpNum;
   float floatVal;
   char chVal;
   string indx;

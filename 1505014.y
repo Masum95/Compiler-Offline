@@ -28,9 +28,8 @@
 	string variable_type;
 	string FuncRetVar = "rv";
 	int paramNum = 1;
-	bool isMain = 0 , post = 0;
-	set<string> asmParamOut;
-	set<string> asmParamIn;
+	bool isMain = 0 , isVoid = 0;
+	vector<string> scopeVars;
 	vector<SymbolInfo*> params;
 	vector<string> args;
 	vector<string> variables;
@@ -80,13 +79,12 @@
 			}
 		}
 
-		str+= "\n";
 		return str;
 	}
 
 	string endFunc(bool parInOut)
 	{
-		string str = "\n";
+		string str;
 		if(parInOut)
 		{
 			for(int i=4;i>=1;i--)
@@ -135,7 +133,11 @@
 			{
 				if(prevString[0]=="mov" && curString[0]=="mov"){
 					if(prevString[1]==curString[2] && prevString[2]==curString[1]) continue;
+					if(prevString[1]==curString[1] && prevString[2]==curString[2]) continue;
+				}
 
+				if(prevString[0]=="push" && curString[0]=="pop"){
+					if(prevString[1]==curString[1]) continue;
 				}
 			}
 			retString+= "\n" +tokens[i];
@@ -324,6 +326,7 @@
 	{
 		SymbolInfo *tmp = table.lookUpInScopes((new SymbolInfo())->setName($2->getName())->setIDType("FUNC"));
 		if($2->getName()=="main") isMain = 1;
+		if($1->getVarType()=="VOID") isVoid = 1;
 
 		if(argsWithId!=args.size())
 		{
@@ -399,10 +402,16 @@
 			else{
 				$$->code = $2->getName() + " proc\n";
 				$$->code+= initFunc(1);
+				for(int i=0;i<scopeVars.size();i++){
+					$$->code+= "\tpush "+scopeVars[i]+"\n";
+				}
+				$$->code+="\n";
 				$$->code+= $7->code;
 				$$->code+=  $2->getName() + " endp\n";
 			}
+			scopeVars.clear();
 			$$->code+= "\n\n";
+			isVoid = 0;
 		}
 		;
 
@@ -421,7 +430,6 @@
 			SymbolInfo *tmp = new SymbolInfo();
 			tmp->setIDType("VAR")->setType("ID")->setVarType(variable_type)->setName($4->getName());
 			tmp->icgName = "parIn"+intToString(paramNum);
-			asmParamOut.insert("parOut"+intToString(paramNum));
 			paramNum++;
 			params.push_back(tmp);
 		}
@@ -445,7 +453,6 @@
 			SymbolInfo *tmp = new SymbolInfo();
 			tmp->setIDType("VAR")->setType("ID")->setVarType(variable_type)->setName($2->getName());
 			tmp->icgName = "parIn"+intToString(paramNum);
-			asmParamOut.insert("parOut"+intToString(paramNum));
 			paramNum++;
 			params.push_back(tmp);
 
@@ -487,7 +494,7 @@
 
 				} RCURL {
 
-					$$ = $3;;
+					$$ = $3;
 
 					table.exitScope();
 				}
@@ -562,8 +569,7 @@
 							errorFile << "Error at line " << line_count << ": Variable "<< $3->getName() <<" already declared" << endl << endl;
 							semError++;
 						}
-						$$ = $1;
-
+						scopeVars.push_back($3->getName()+intToString(table.scopeNumShow));
 						variables.push_back($3->getName()+intToString(table.scopeNumShow));
 					}
 				}
@@ -595,6 +601,7 @@
 							tmp2->stmt = $1->stmt + "," +$3->getName() + "[" + $5->getName() + "]";
 
 							table.insert(tmp2);
+							scopeVars.push_back($3->getName()+intToString(table.scopeNumShow));
 							arrays.push_back(Array($3->getName()+intToString(table.scopeNumShow),$5->getName()));
 
 
@@ -628,7 +635,7 @@
 							errorFile << "Error at line " << line_count << ": Multiple Declaration of "<<$1->getName() << endl << endl;
 							semError++;
 						}
-
+						scopeVars.push_back($1->getName()+intToString(table.scopeNumShow));
 						variables.push_back($1->getName()+intToString(table.scopeNumShow));
 
 					}
@@ -666,6 +673,7 @@
 
 						}
 					}
+					scopeVars.push_back($1->getName()+intToString(table.scopeNumShow));
 					arrays.push_back(Array($1->getName()+intToString(table.scopeNumShow),$3->getName()));
 
 				}
@@ -778,11 +786,19 @@
 				| RETURN expression SEMICOLON{
 
 					$$ = (new SymbolInfo())->copyObject($2);
-					if(!isMain)
+					if(isVoid){
+						logFile<<"Error at line " << line_count << "Return type is void" << endl << endl;
+						semError++;
+					}
+					else if(!isMain)
 					{
 						$$->code = $2->code;
 						$$->code+="\tmov dx,"+$2->icgName+"\n"; // return in dx register
 						$$->code+="\tmov "+FuncRetVar +",dx\n";
+						$$->code+="\n";
+						for(int i=scopeVars.size()-1;i>=0;i--){
+							$$->code+= "\tpop "+scopeVars[i]+"\n";
+						}
 						$$->code+=endFunc(1);
 						$$->code+="ret\n";
 					}
@@ -821,23 +837,40 @@
 				{
 
 					$$= new SymbolInfo();
+					SymbolInfo *tmp;
+					if($1->getIDType()=="VAR") tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("VAR"));
+					else if($1->getIDType()=="ARA") tmp = table.lookUpInScopes((new SymbolInfo())->setName($1->getName())->setIDType("ARA"));
+					if(tmp==NULL)
+					{}
+					else if($1->errorFound || $3->errorFound);
+					else{
+						if($3->getVarType()=="VOID"){
+							logFile<<"error at line " << line_count << ": Return Type is void" << endl << endl;
+							semError++;
+						}
+						else if(tmp->getVarType()!=$3->getVarType())
+						{
+							logFile << "Warning at line " << line_count << ": Type Mismatch" << endl << endl;
+						}
+						if($1->getIDType()!="ARA")
+						{
+							$$->code=$3->code+$1->code;
+							$$->code+= "\tmov ax," + $3->icgName+"\n";
+							$$->code+= "\tmov "+$1->icgName+", ax\n";
+						}
+						else {
 
-					if($1->getIDType()!="ARA")
-					{
-						$$->code=$3->code+$1->code;
-						$$->code+= "\tmov ax," + $3->icgName+"\n";
-						$$->code+= "\tmov "+$1->icgName+", ax\n";
+							$$->code = $3->code;
+
+							$$->code+= $1->getIndex();
+
+							$$->code+= "\tmov ax," + $3->icgName+"\n";
+							$$->code+= "\tmov  "+$1->writeData+"[bx], ax\n";
+
+						}
+
 					}
-					else {
 
-						$$->code = $3->code;
-
-						$$->code+= $1->getIndex();
-
-						$$->code+= "\tmov ax," + $3->icgName+"\n";
-						$$->code+= "\tmov  "+$1->writeData+"[bx], ax\n";
-
-					}
 					//delete $3;
 					//-----------Table to be printed ----
 				}
@@ -1181,7 +1214,7 @@
 					{
 						logFile <<  "Error at line " << line_count << " :  Undeclared Variable: "  << $1->getName()  <<  endl << endl;
 						semError++;
-						table.printAll(logFile);
+						//table.printAll(logFile);
 					}
 					else $$ = tmp;
 
@@ -1250,7 +1283,9 @@
 				argument_list	: arguments{
 					$$ = (new SymbolInfo())->copyObject($1); $$->code = $1->code;
 				}
-				|
+				|{
+					$$ = new SymbolInfo();
+				}
 				;
 
 				arguments	:arguments COMMA logic_expression {
